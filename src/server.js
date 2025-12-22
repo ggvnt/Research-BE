@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import pool from "./config/db.js";
+import authRoutes from "./modules/auth/auth.routes.js";
 
 dotenv.config();
 
@@ -13,6 +14,9 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("Node.js Backend Running 🚀");
 });
+
+// Auth routes
+app.use("/api/auth", authRoutes);
 
 // Simple DB health check route
 app.get("/db-health", async (req, res) => {
@@ -26,7 +30,7 @@ app.get("/db-health", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
   console.log(`Server running on http://localhost:${PORT}`);
   // Try a startup query to verify connection
   try {
@@ -35,4 +39,21 @@ app.listen(PORT, async () => {
   } catch (err) {
     console.error("DB connection on startup failed:", err.message);
   }
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, closing server gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    pool.end();
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('\nSIGINT received, closing server gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    pool.end();
+  });
 });
